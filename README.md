@@ -3,7 +3,9 @@
 This is a simple implementation of the popular game Flappy Bird in Python using the Pygame library.
 
 ## Game Summary
-In this Flappy Bird game, the player controls a bird, attempting to fly between pairs of pipes without hitting them. The bird automatically falls down due to gravity, and the player needs to tap the space bar to flap the bird’s wings and make it rise. The goal is to survive as long as possible. In this version of Flappy Bird, players can:
+In this Flappy Bird game, the player controls a bird, attempting to fly between pairs of pipes without hitting them. The bird automatically falls down due to gravity, and the player needs to tap the space bar to flap the bird’s wings and make it rise. The goal is to survive as long as possible. 
+
+In this version of Flappy Bird, players can:
 - Make the bird flap its wings using the spacebar
 - Navigate through pipes without hitting them
 - Restart the game after it ends
@@ -27,8 +29,7 @@ cd flappybird-game
 ```
 
 ### Install Dependencies
-
-Make sure you have Python 3.x and Pip installed. Then, install the required dependencies using the `requirements.txt` file:
+Before running the game, you'll need to install the required dependencies. Make sure you have Python 3.x and Pip installed. Then, install the required dependencies using the `requirements.txt` file:
 
 ```bash
 pip install -r requirements.txt
@@ -36,7 +37,7 @@ pip install -r requirements.txt
 
 ### Run the Game
 
-To run the Flappy Bird game, execute the following command in your terminal:
+To run the Flappy Bird game once the dependencies are installed, execute the following command in your terminal:
 
 ```bash
 python flappybird.py
