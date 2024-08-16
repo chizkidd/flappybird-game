@@ -3,7 +3,7 @@
 This is a simple implementation of the popular game Flappy Bird in Python using the Pygame library.
 
 ## Game Summary
-In this Flappy Bird game, the player controls a bird, attempting to fly between pairs of pipes without hitting them. The bird automatically falls down due to gravity, and the player needs to tap the space bar to flap the bird’s wings and make it rise. The goal is to survive as long as possible. 
+In this Flappy Bird game, the player controls a bird, attempting to fly between pairs of pipes without hitting them. The bird automatically falls down due to gravity, and the player needs to tap the space bar to flap the bird’s wings and make it rise. The goal is to survive for as long as possible. 
 
 ## Game Description
 
