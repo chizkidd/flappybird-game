@@ -66,5 +66,5 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## Author
 
-Your Name
+Chizoba Obasi
 - GitHub: [@chizkidd](https://github.com/chizkidd)
