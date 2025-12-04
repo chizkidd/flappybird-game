@@ -1,45 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flappy Bird by chizkidd</title>
+    <title>Pygame Flappy Bird - PyScript</title>
     
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
-
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    
     <style>
         body {
-            font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding-top: 20px;
-        }
-        #pyscript-output {
-            margin-top: 20px;
-            /* Style the container where Pygame/PyScript renders the canvas */
+            min-height: 100vh;
+            margin: 0;
+            background-color: #306998; /* Example background color */
         }
     </style>
 </head>
 <body>
-    <h1>Flappy Bird</h1>
-    <p>Loading game via Pyodide/PyScript...</p>
 
     <py-config>
+        # **CORRECTED PACKAGE NAME**
         packages = ["pygame-ce"] 
-        [[fetch]]
-        files = ["flappybird.py"] 
+        
+        # **OPTIONAL: Fetching the file. Not strictly needed if using src=**
+        # fetch:
+        #   - name: flappybird_game_code
+        #     files: ["main.py", "./assets/bird.png", "./assets/pipe.png", ...]
     </py-config>
 
-    <div id="pyscript-output">
-        <py-script src="flappybird.py">
-            # This line tells PyScript to execute the main game file.
-            # Make sure this 'src' attribute matches the file name in the [[fetch]] block.
-        </py-script>
-    </div>
-    
-    <div id="pygame-canvas"></div>
+    <py-script src="./main.py" type="py-game"></py-script>
 
 </body>
 </html>
