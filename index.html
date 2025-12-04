@@ -1,24 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flappy Bird (PyScript)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flappy Bird by chizkidd</title>
+    
     <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
     <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        #pyscript-output {
+            margin-top: 20px;
+            /* Style the container where Pygame/PyScript renders the canvas */
+        }
+    </style>
 </head>
 <body>
+    <h1>Flappy Bird</h1>
+    <p>Loading game via Pyodide/PyScript...</p>
+
     <py-config>
-        packages = ["pygame"] # If your game uses pygame
-        # Specify all your necessary .py files here
+        packages = ["pygame"] 
         [[fetch]]
-        files = ["./flappybird.py"] 
+        files = ["flappybird.py"] 
     </py-config>
 
     <div id="pyscript-output">
-        <py-script src="./flappybird.py">
-            # Execution begins here after PyScript loads
+        <py-script src="flappybird.py">
+            # This line tells PyScript to execute the main game file.
+            # Make sure this 'src' attribute matches the file name in the [[fetch]] block.
         </py-script>
     </div>
-
+    
     <div id="pygame-canvas"></div>
+
 </body>
 </html>
