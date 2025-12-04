@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird (PyScript)</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+</head>
+<body>
+    <py-config>
+        packages = ["pygame"] # If your game uses pygame
+        # Specify all your necessary .py files here
+        [[fetch]]
+        files = ["flappybird.py"] 
+    </py-config>
+
+    <py-script src="./flappybird.py">
+        # This will execute the main game file
+    </py-script>
+
+    <div id="pygame-canvas"></div>
+</body>
+</html>
