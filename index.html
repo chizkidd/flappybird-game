@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
     <title>Pygame Flappy Bird - PyScript</title>
-    
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     
@@ -13,25 +13,22 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #306998; /* Example background color */
+            background-color: #306998;
+        }
+        pyscript-canvas {
+            border: 4px solid #000;
+            border-radius: 8px
         }
     </style>
 </head>
 <body>
 
     <py-config>
-        # **CORRECTED PACKAGE NAME**
-        packages = ["pygame-ce"] 
-        [[fetch]]
-        files = ["main.py", "./assets/background-day.png", "./assets/bluebird-midflap.png", "./assets/pipe-green.png"]
-        
-        # **OPTIONAL: Fetching the file. Not strictly needed if using src=**
-        # fetch:
-        #   - name: flappybird_game_code
-        #     files: ["main.py", "./assets/bird.png", "./assets/pipe.png", ...]
+        packages = ["pygame-web"] 
+        <!-- [[fetch]]
+        files = ["main2.py", "./assets/background-day.png", "./assets/bluebird-midflap.png", "./assets/pipe-green.png"] -->
     </py-config>
 
-    <py-script src="./main.py" id="flappy-game"></py-script>
-
+    <py-script src="./main2.py" id="flappy-game"></py-script>
 </body>
 </html>
