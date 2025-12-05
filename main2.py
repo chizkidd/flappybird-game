@@ -1,12 +1,13 @@
 import pygame
 import random
 import asyncio
-import sys
 
 # Constants
 WIDTH = 400
 HEIGHT = 600
 GRAVITY = 0.25
+
+print("PyScript: Starting Flappy Bird...")
 
 # Helper Functions
 def create_pipe(pipe_img):
@@ -56,28 +57,28 @@ def update_score(score, high_score):
     return max(score, high_score)
 
 async def main():
-    print("Initializing Flappy Bird...")
+    print("Initializing Pygame...")
     pygame.init()
-    window = pygame.display.set_mode((WIDTH, HEIGHT))
+    window = pygame.display.set_mode((WIDTH, HEIGHT))  # Links to #game-canvas
     pygame.display.set_caption("Flappy Bird")
     clock = pygame.time.Clock()
 
     # Load Assets
     try:
-        print("Loading assets from ./assets/...")
+        print("Loading assets...")
         bg_img = pygame.image.load('assets/background-day.png').convert()
         bg_img = pygame.transform.scale(bg_img, (WIDTH, HEIGHT))
         bird_img = pygame.image.load('assets/bluebird-midflap.png').convert_alpha()
         pipe_img = pygame.image.load('assets/pipe-green.png').convert()
-        print("Assets loaded successfully!")
+        print("Assets loaded!")
     except Exception as e:
-        print(f"Asset error (check paths): {e}. Using fallbacks.")
+        print(f"Asset fallback: {e}")
         bg_img = pygame.Surface((WIDTH, HEIGHT))
-        bg_img.fill((135, 206, 235))  # Sky
+        bg_img.fill((135, 206, 235))
         bird_img = pygame.Surface((40, 30))
-        bird_img.fill((255, 255, 0))  # Yellow bird
+        bird_img.fill((255, 255, 0))
         pipe_img = pygame.Surface((70, 400))
-        pipe_img.fill((0, 128, 0))  # Green pipe
+        pipe_img.fill((0, 128, 0))
 
     bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
 
@@ -93,7 +94,7 @@ async def main():
     high_score = 0
     pipe_list = []
 
-    print("Starting game loop...")
+    print("Game loop running...")
     running = True
     while running:
         for event in pygame.event.get():
@@ -133,10 +134,10 @@ async def main():
 
         pygame.display.flip()
         clock.tick(60)
-        await asyncio.sleep(1 / 60)  # Yield to browser—CRITICAL for rendering!
+        await asyncio.sleep(1 / 60)  # Yield for browser rendering
 
     pygame.quit()
-    print("Game ended.")
+    print("Game over.")
 
-# Run in PyScript
+# PyScript entry
 asyncio.run(main())
