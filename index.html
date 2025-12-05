@@ -23,7 +23,7 @@
         # **CORRECTED PACKAGE NAME**
         packages = ["pygame-ce"] 
         [[fetch]]
-        files = ["./main.py"] 
+        files = ["main.py", "./assets/background-day.png", "./assets/bluebird-midflap.png", "./assets/pipe-green.png"]
         
         # **OPTIONAL: Fetching the file. Not strictly needed if using src=**
         # fetch:
@@ -31,7 +31,7 @@
         #     files: ["main.py", "./assets/bird.png", "./assets/pipe.png", ...]
     </py-config>
 
-    <py-script src="./main.py" type="py-game"></py-script>
+    <py-script src="./main.py" id="flappy-game"></py-script>
 
 </body>
 </html>
