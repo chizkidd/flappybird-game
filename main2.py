@@ -139,5 +139,5 @@ async def main():
     pygame.quit()
     print("Game over.")
 
-# # PyScript entry
-# asyncio.run(main())
+# PyScript entry
+asyncio.run(main())
