@@ -1,6 +1,6 @@
 import pygame
 import random
-import asyncio 
+import sys
 
 # Set up the game window variables globally
 WIDTH = 400
@@ -95,88 +95,80 @@ def update_score(current_score, high_score_val):
         high_score_val = current_score
     return high_score_val
 
-# --- Main Asynchronous Game Loop ---
 
-async def main():
-    # Use global variables that will be initialized within this function
-    global bird_movement, game_active, score, high_score, pipe_list, bird_rect, window, bg_img, bird_img, pipe_img, game_font
+# 1. Initialization 
+pygame.init()
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Flappy Bird")
+clock = pygame.time.Clock()
+
+# Asset Loading
+try:
+    # NOTE: Ensure 'assets' folder and files are pushed to GitHub
+    bg_img = pygame.image.load('assets/background-day.png').convert()
+    bg_img = pygame.transform.scale(bg_img, (WIDTH, HEIGHT))
+    bird_img = pygame.image.load('assets/bluebird-midflap.png').convert_alpha()
+    pipe_img = pygame.image.load('assets/pipe-green.png').convert()
+except pygame.error as e:
+    print(f"Error loading assets: {e}. Falling back to basic surfaces.")
+    bg_img = pygame.Surface((WIDTH, HEIGHT)); bg_img.fill((135, 206, 235)) 
+    bird_img = pygame.Surface((40, 30)); bird_img.fill((255, 255, 0))
+    pipe_img = pygame.Surface((70, 400)); pipe_img.fill((0, 128, 0))
     
-    # 1. Initialization (Must be inside the async function for PyScript)
-    pygame.init()
-    window = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Flappy Bird")
-    clock = pygame.time.Clock()
-    
-    # Asset Loading
-    try:
-        # NOTE: Ensure 'assets' folder and files are pushed to GitHub
-        bg_img = pygame.image.load('assets/background-day.png').convert()
-        bg_img = pygame.transform.scale(bg_img, (WIDTH, HEIGHT))
-        bird_img = pygame.image.load('assets/bluebird-midflap.png').convert_alpha()
-        pipe_img = pygame.image.load('assets/pipe-green.png').convert()
-    except pygame.error as e:
-        print(f"Error loading assets: {e}. Falling back to basic surfaces.")
-        bg_img = pygame.Surface((WIDTH, HEIGHT)); bg_img.fill((135, 206, 235)) 
-        bird_img = pygame.Surface((40, 30)); bird_img.fill((255, 255, 0))
-        pipe_img = pygame.Surface((70, 400)); pipe_img.fill((0, 128, 0))
+bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
+
+# Event Setup
+SPAWNPIPE = pygame.USEREVENT
+pygame.time.set_timer(SPAWNPIPE, 1200)
+game_font = pygame.font.Font(None, 40)
+
+running = True 
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
         
-    bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                if game_active:
+                    bird_movement = -8 # Flap strength
+                else: # Restart logic
+                    game_active = True
+                    pipe_list.clear()
+                    bird_rect.center = (100, HEIGHT // 2)
+                    bird_movement = 0
+                    score = 0
 
-    # Event Setup
-    SPAWNPIPE = pygame.USEREVENT
-    pygame.time.set_timer(SPAWNPIPE, 1200)
-    game_font = pygame.font.Font(None, 40)
-    
-    running = True 
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    if game_active:
-                        bird_movement = -8 # Flap strength
-                    else: # Restart logic
-                        game_active = True
-                        pipe_list.clear()
-                        bird_rect.center = (100, HEIGHT // 2)
-                        bird_movement = 0
-                        score = 0
+        if event.type == SPAWNPIPE:
+            pipe_list.extend(create_pipe())
 
-            if event.type == SPAWNPIPE:
-                pipe_list.extend(create_pipe())
+    # 2. Drawing and Logic
+    window.blit(bg_img, (0, 0))
 
-        # 2. Drawing and Logic
-        window.blit(bg_img, (0, 0))
+    if game_active:
+        # Bird Logic
+        bird_movement += gravity
+        rotated_bird = rotate_bird(bird_img)
+        bird_rect.centery += bird_movement
+        window.blit(rotated_bird, bird_rect)
+        game_active = check_collision(pipe_list)
 
-        if game_active:
-            # Bird Logic
-            bird_movement += gravity
-            rotated_bird = rotate_bird(bird_img)
-            bird_rect.centery += bird_movement
-            window.blit(rotated_bird, bird_rect)
-            game_active = check_collision(pipe_list)
+        # Pipe Logic
+        pipe_list = move_pipes(pipe_list)
+        draw_pipes(pipe_list)
+        
+        # Scoring
+        score += 0.01
+        score_display('main_game')
+    else:
+        high_score = update_score(score, high_score)
+        score_display('game_over')
 
-            # Pipe Logic
-            pipe_list = move_pipes(pipe_list)
-            draw_pipes(pipe_list)
-            
-            # Scoring
-            score += 0.01
-            score_display('main_game')
-        else:
-            high_score = update_score(score, high_score)
-            score_display('game_over')
+    # 3. Update Screen and Yield Control
+    pygame.display.update()
+    clock.tick(60)
+    await asyncio.sleep(0) # Yield control to the browser loop 
 
-        # 3. Update Screen and Yield Control
-        pygame.display.update()
-        clock.tick(60)
-        await asyncio.sleep(0) # Yield control to the browser loop 
+pygame.quit()
+sys.exit()
 
-    pygame.quit()
-
-# --- Entry Point ---
-if __name__ == '__main__':
-    # Start the asynchronous game loop
-    asyncio.run(main())
