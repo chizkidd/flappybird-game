@@ -1,31 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Bird</title>
     <style>
-        body { 
-            margin: 0; 
+        body {
+            margin: 0;
             background: linear-gradient(180deg, #70c5ce 0%, #306998 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             font-family: Arial, sans-serif;
+            overflow: hidden;
         }
-        canvas { 
+        canvas {
             border: 4px solid #000;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             touch-action: none;
+            cursor: pointer;
         }
         .instructions {
             position: absolute;
             top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             color: white;
             text-align: center;
             font-size: 18px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
         }
         .loading {
             position: absolute;
@@ -35,41 +41,238 @@
             color: white;
             font-size: 24px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
         }
     </style>
 </head>
 <body>
     <div class="instructions">
-        <div>🕹️ SPACEBAR or TAP to flap</div>
-        <div style="font-size: 14px; margin-top: 10px;">Made with pygbag + pygame-ce</div>
+        🕹️ SPACEBAR or TAP to flap
     </div>
-    <canvas id="canvas" width="400" height="600"></canvas>
-    <div id="loading" class="loading">Loading game... (first time may take 30s)</div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="loading" class="loading" style="display: none;">Loading assets...</div>
 
-    <!-- Official pygbag CDN script -->
-    <script defer src="https://pygame-web.github.io/pygbag/pygbag.min.js"></script>
-    
-    <!-- pygbag loader -->
     <script>
-        window.addEventListener('load', async () => {
-            const canvas = document.getElementById('canvas');
-            const loading = document.getElementById('loading');
-            
-            try {
-                // Load and run the game
-                await pygbag.run({
-                    canvas: canvas,
-                    main: './main2.py',  // Your game file
-                    files: ['./main2.py', './assets/background-day.png', './assets/bluebird-midflap.png', './assets/pipe-green.png'],
-                    cdn: 'https://pygame-web.github.io/archives/0.8/'  // Official CDN for assets/WASM
-                });
-                loading.style.display = 'none';  // Hide loading when ready
-                console.log('Game loaded!');
-            } catch (error) {
-                console.error('Load error:', error);
-                loading.innerText = 'Error loading game. Check console.';
+        // Flappy Bird in Pure JS/HTML5 Canvas (Dec 2025 Edition)
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const loading = document.getElementById('loading');
+
+        // Game constants
+        const WIDTH = 400;
+        const HEIGHT = 600;
+        const GRAVITY = 0.5;
+        const JUMP = -10;
+        const PIPE_WIDTH = 52;
+        const PIPE_GAP = 180;
+        const PIPE_SPEED = 5;
+
+        // Load assets (your PNGs)
+        let bgImg = new Image();
+        let birdImg = new Image();
+        let pipeImg = new Image();
+        let assetsLoaded = 0;
+        let totalAssets = 3;
+
+        function loadImage(src, img) {
+            img.onload = () => {
+                assetsLoaded++;
+                if (assetsLoaded === totalAssets) {
+                    loading.style.display = 'none';
+                    gameLoop();
+                }
+            };
+            img.onerror = () => {  // Fallback to colors if asset fails
+                assetsLoaded++;
+                if (assetsLoaded === totalAssets) {
+                    loading.style.display = 'none';
+                    gameLoop();
+                }
+            };
+            img.src = src;
+        }
+
+        loadImage('assets/background-day.png', bgImg);
+        loadImage('assets/bluebird-midflap.png', birdImg);
+        loadImage('assets/pipe-green.png', pipeImg);
+
+        // Game state
+        let birdX = 100;
+        let birdY = HEIGHT / 2;
+        let birdVelocity = 0;
+        let pipes = [];
+        let score = 0;
+        let highScore = 0;
+        let gameActive = true;
+        let frame = 0;
+
+        // Input handling (keyboard + touch/mouse)
+        function jump() {
+            if (gameActive) {
+                birdVelocity = JUMP;
+            } else {
+                // Restart
+                gameActive = true;
+                pipes = [];
+                birdY = HEIGHT / 2;
+                birdVelocity = 0;
+                score = 0;
+                frame = 0;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
             }
         });
+        canvas.addEventListener('click', jump);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        // Create pipe pair
+        function createPipe() {
+            const y = Math.random() * (HEIGHT - PIPE_GAP - 200) + 100;
+            pipes.push({
+                x: WIDTH,
+                top: y,
+                bottom: HEIGHT - (y + PIPE_GAP),
+                scored: false
+            });
+        }
+
+        // Update game logic
+        function update() {
+            if (!gameActive) return;
+
+            // Bird physics
+            birdVelocity += GRAVITY;
+            birdY += birdVelocity;
+
+            // Ground/ceiling collision
+            if (birdY < 0 || birdY > HEIGHT - 30) {
+                gameActive = false;
+                highScore = Math.max(highScore, score);
+            }
+
+            // Pipes
+            if (frame % 90 === 0) {  // Spawn every ~1.5s at 60fps
+                createPipe();
+            }
+
+            pipes.forEach((pipe, index) => {
+                pipe.x -= PIPE_SPEED;
+
+                // Collision detection
+                const birdRight = birdX + 34;
+                const birdBottom = birdY + 24;
+                if (birdRight > pipe.x && birdX < pipe.x + PIPE_WIDTH &&
+                    (birdY < pipe.top || birdBottom > HEIGHT - pipe.bottom)) {
+                    gameActive = false;
+                    highScore = Math.max(highScore, score);
+                }
+
+                // Score
+                if (!pipe.scored && pipe.x + PIPE_WIDTH < birdX) {
+                    score++;
+                    pipe.scored = true;
+                }
+
+                // Remove off-screen pipes
+                if (pipe.x + PIPE_WIDTH < 0) {
+                    pipes.splice(index, 1);
+                }
+            });
+
+            frame++;
+        }
+
+        // Render
+        function draw() {
+            // Background
+            ctx.fillStyle = bgImg.src ? 'white' : '#70c5ce';  // Fallback gradient-ish
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            if (bgImg.complete && bgImg.naturalHeight !== 0) {
+                ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
+            }
+
+            if (gameActive) {
+                // Bird (simple rotation simulation with arc)
+                ctx.save();
+                ctx.translate(birdX + 17, birdY + 12);
+                ctx.rotate(-birdVelocity * 0.1);  // Tilt based on velocity
+                if (birdImg.complete && birdImg.naturalHeight !== 0) {
+                    ctx.drawImage(birdImg, -17, -12);
+                } else {
+                    // Yellow circle fallback
+                    ctx.fillStyle = 'yellow';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-4, -4, 2, 0, Math.PI * 2);
+                    ctx.arc(4, -4, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // Pipes
+                pipes.forEach(pipe => {
+                    // Top pipe
+                    if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
+                        ctx.save();
+                        ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.top);
+                        ctx.scale(1, -1);
+                        ctx.drawImage(pipeImg, -PIPE_WIDTH / 2, 0, PIPE_WIDTH, pipe.top);
+                        ctx.restore();
+                    } else {
+                        // Green rect fallback
+                        ctx.fillStyle = 'green';
+                        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
+                    }
+
+                    // Bottom pipe
+                    if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
+                        ctx.drawImage(pipeImg, pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
+                    } else {
+                        ctx.fillStyle = 'green';
+                        ctx.fillRect(pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
+                    }
+                });
+
+                // Score
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(Math.floor(score), WIDTH / 2, 80);
+            } else {
+                // Game over screen
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 36px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Score: ${Math.floor(score)}`, WIDTH / 2, HEIGHT / 2 - 50);
+                ctx.fillText(`High: ${Math.floor(highScore)}`, WIDTH / 2, HEIGHT / 2);
+                ctx.font = '24px Arial';
+                ctx.fillText('SPACE or TAP to restart', WIDTH / 2, HEIGHT / 2 + 60);
+            }
+        }
+
+        // Main game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initial load message
+        loading.style.display = 'block';
     </script>
 </body>
 </html>
