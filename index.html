@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird - PyGame-CE in PyScript</title>
-    <link rel="stylesheet" href="https://pyscript.net/latest/core.css">
-    <script type="module" src="https://pyscript.net/latest/core.js"></script>
+    <title>Flappy Bird - PyScript + PyGame-CE</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.5.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2025.5.1/core.js"></script>
     <style>
         body {
             margin: 0;
@@ -15,29 +15,12 @@
             min-height: 100vh;
             background-color: #306998;
         }
-        .game-canvas {
-            border: 2px solid #000;
-            display: block;
-        }
     </style>
 </head>
 <body>
     <py-config>
-        # No 'packages' here—pygame-ce is loaded in JS/Python
-        run_hydrated = true  # Enables full Pyodide features
+        packages = ["pygame-ce"]
     </py-config>
-
-    <!-- Load pygame-ce before the game script -->
-    <script>
-        async function loadPygame() {
-            const pyodide = await loadPyodide();
-            await pyodide.loadPackage('pygame-ce');
-            console.log('pygame-ce loaded!');
-        }
-        loadPygame();
-    </script>
-
-    <!-- Game script with py-game type for canvas -->
-    <script type="py-game" src="./main2.py" id="flappy-game"></script>
+    <py-script src="./main2.py"></py-script>
 </body>
 </html>
