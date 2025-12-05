@@ -1,100 +1,54 @@
 import pygame
 import random
-import asyncio
+import asyncio  # Required for browser sync
 
 # Constants
-WIDTH = 400
-HEIGHT = 600
-GRAVITY = 0.25
+WIDTH, HEIGHT = 400, 600
+GRAVITY = 0.5
+PIPE_SPEED = 5
 
-print("PyScript: Starting Flappy Bird...")
+# Init (runs once)
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Flappy Bird")
+clock = pygame.time.Clock()
+font = pygame.font.Font(None, 50)
 
-# Helper Functions
-def create_pipe(pipe_img):
-    random_pipe_pos = random.choice([300, 350, 400])
-    bottom_pipe = pipe_img.get_rect(midtop=(500, random_pipe_pos))
-    top_pipe = pipe_img.get_rect(midbottom=(500, random_pipe_pos - 200))
-    return bottom_pipe, top_pipe
+# Load assets with fallback
+try:
+    bg = pygame.image.load("assets/background-day.png").convert()
+    bg = pygame.transform.scale(bg, (WIDTH, HEIGHT))
+    bird_img = pygame.image.load("assets/bluebird-midflap.png").convert_alpha()
+    pipe_img = pygame.image.load("assets/pipe-green.png").convert()
+    print("Assets loaded")
+except Exception as e:
+    print("Assets fallback:", e)
+    bg = pygame.Surface((WIDTH, HEIGHT))
+    bg.fill((135, 206, 250))  # Sky blue
+    bird_img = pygame.Surface((34, 24))
+    bird_img.fill((255, 255, 0))  # Yellow bird
+    pipe_img = pygame.Surface((52, 320))
+    pipe_img.fill((0, 200, 0))  # Green pipe
 
-def move_pipes(pipes):
-    for pipe in pipes:
-        pipe.centerx -= 5
-    return [pipe for pipe in pipes if pipe.right > -50]
+# Game state
+bird_rect = bird_img.get_rect(center=(100, HEIGHT//2))
+bird_movement = 0
+pipes = []
+score = 0
+game_active = True
 
-def draw_pipes(window, pipes, pipe_img):
-    for pipe in pipes:
-        if pipe.bottom >= HEIGHT:
-            window.blit(pipe_img, pipe)
-        else:
-            flip_pipe = pygame.transform.flip(pipe_img, False, True)
-            window.blit(flip_pipe, pipe)
+def create_pipe():
+    y = random.randint(200, 400)
+    bottom = pipe_img.get_rect(midtop=(WIDTH + 100, y))
+    top = pipe_img.get_rect(midbottom=(WIDTH + 100, y - 180))
+    return [bottom, top]
 
-def check_collision(bird_rect, pipes):
-    for pipe in pipes:
-        if bird_rect.colliderect(pipe):
-            return False
-    if bird_rect.top <= -100 or bird_rect.bottom >= HEIGHT:
-        return False
-    return True
-
-def rotate_bird(bird_img, bird_movement):
-    return pygame.transform.rotozoom(bird_img, -bird_movement * 3, 1)
-
-def score_display(window, game_state, score, high_score, game_font):
-    if game_state == 'main_game':
-        score_surface = game_font.render(str(int(score)), True, (255, 255, 255))
-        score_rect = score_surface.get_rect(center=(WIDTH // 2, 100))
-        window.blit(score_surface, score_rect)
-    elif game_state == 'game_over':
-        score_surface = game_font.render(f'Score: {int(score)}', True, (255, 255, 255))
-        score_rect = score_surface.get_rect(center=(WIDTH // 2, 100))
-        window.blit(score_surface, score_rect)
-        high_score_surface = game_font.render(f'High score: {int(high_score)}', True, (255, 255, 255))
-        high_score_rect = high_score_surface.get_rect(center=(WIDTH // 2, HEIGHT - 100))
-        window.blit(high_score_surface, high_score_rect)
-
-def update_score(score, high_score):
-    return max(score, high_score)
-
+# Async main loop (REQUIRED for pygbag/browser)
 async def main():
-    print("Initializing Pygame...")
-    pygame.init()
-    window = pygame.display.set_mode((WIDTH, HEIGHT))  # Links to #game-canvas
-    pygame.display.set_caption("Flappy Bird")
-    clock = pygame.time.Clock()
-
-    # Load Assets
-    try:
-        print("Loading assets...")
-        bg_img = pygame.image.load('assets/background-day.png').convert()
-        bg_img = pygame.transform.scale(bg_img, (WIDTH, HEIGHT))
-        bird_img = pygame.image.load('assets/bluebird-midflap.png').convert_alpha()
-        pipe_img = pygame.image.load('assets/pipe-green.png').convert()
-        print("Assets loaded!")
-    except Exception as e:
-        print(f"Asset fallback: {e}")
-        bg_img = pygame.Surface((WIDTH, HEIGHT))
-        bg_img.fill((135, 206, 235))
-        bird_img = pygame.Surface((40, 30))
-        bird_img.fill((255, 255, 0))
-        pipe_img = pygame.Surface((70, 400))
-        pipe_img.fill((0, 128, 0))
-
-    bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
-
-    # Setup
+    global bird_movement, game_active, score, pipes
     SPAWNPIPE = pygame.USEREVENT
     pygame.time.set_timer(SPAWNPIPE, 1200)
-    game_font = pygame.font.Font(None, 40)
-
-    # Variables
-    bird_movement = 0
-    game_active = True
-    score = 0
-    high_score = 0
-    pipe_list = []
-
-    print("Game loop running...")
+    
     running = True
     while running:
         for event in pygame.event.get():
@@ -102,42 +56,70 @@ async def main():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if game_active:
-                        bird_movement = -8
-                    else:
+                    bird_movement = -10
+                    if not game_active:
+                        # Restart
                         game_active = True
-                        pipe_list.clear()
-                        bird_rect.center = (100, HEIGHT // 2)
+                        pipes = []
+                        bird_rect.center = (100, HEIGHT//2)
                         bird_movement = 0
                         score = 0
-            if event.type == SPAWNPIPE:
-                pipe_list.extend(create_pipe(pipe_img))
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:  # Touch support
+                bird_movement = -10
+                if not game_active:
+                    game_active = True
+                    pipes = []
+                    bird_rect.center = (100, HEIGHT//2)
+                    bird_movement = 0
+                    score = 0
+            if event.type == SPAWNPIPE and game_active:
+                pipes.extend(create_pipe())
 
-        # Render
-        window.blit(bg_img, (0, 0))
-
+        # Update
         if game_active:
             bird_movement += GRAVITY
-            rotated_bird = rotate_bird(bird_img, bird_movement)
             bird_rect.centery += bird_movement
-            window.blit(rotated_bird, bird_rect)
-            game_active = check_collision(bird_rect, pipe_list)
-
-            pipe_list = move_pipes(pipe_list)
-            draw_pipes(window, pipe_list, pipe_img)
-
+            
+            # Move pipes
+            pipes = [p.move(-PIPE_SPEED, 0) for p in pipes if p.right > -50]
+            
+            # Collision
+            if bird_rect.top <= 0 or bird_rect.bottom >= HEIGHT:
+                game_active = False
+            for pipe in pipes:
+                if bird_rect.colliderect(pipe):
+                    game_active = False
+                    break
+            
             score += 0.01
-            score_display(window, 'main_game', score, high_score, game_font)
+
+        # Draw
+        screen.blit(bg, (0, 0))
+        
+        if game_active:
+            rotated_bird = pygame.transform.rotozoom(bird_img, -bird_movement * 3, 1)
+            screen.blit(rotated_bird, bird_rect)
+            
+            # Draw pipes
+            for pipe in pipes:
+                if pipe.bottom >= HEIGHT:
+                    screen.blit(pipe_img, pipe)
+                else:
+                    screen.blit(pygame.transform.flip(pipe_img, False, True), pipe)
+            
+            # Score
+            score_text = font.render(str(int(score)), True, (255, 255, 255))
+            screen.blit(score_text, score_text.get_rect(center=(WIDTH//2, 80)))
         else:
-            high_score = update_score(score, high_score)
-            score_display(window, 'game_over', score, high_score, game_font)
+            # Game Over
+            score_text = font.render(f"Score: {int(score)}", True, (255, 255, 255))
+            restart_text = pygame.font.Font(None, 36).render("SPACE or TAP to restart", True, (255, 255, 255))
+            screen.blit(score_text, score_text.get_rect(center=(WIDTH//2, HEIGHT//2 - 50)))
+            screen.blit(restart_text, restart_text.get_rect(center=(WIDTH//2, HEIGHT//2 + 50)))
 
         pygame.display.flip()
         clock.tick(60)
-        await asyncio.sleep(1 / 60)  # Yield for browser rendering
+        await asyncio.sleep(0)  # CRITICAL: Yields to browser for smooth rendering
 
-    pygame.quit()
-    print("Game over.")
-
-# PyScript entry
+# Start the game
 asyncio.run(main())
