@@ -1,27 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
     <title>Flappy Bird</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2025.11.2/core.css">
-    <script type="module" src="https://pyscript.net/releases/2025.11.2/core.js"></script>
     <style>
-        body {
-            margin: 0;
+        body { 
+            margin: 0; 
+            background: linear-gradient(180deg, #70c5ce 0%, #306998 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #306998;
+            font-family: Arial, sans-serif;
         }
-        canvas { border:4px solid #000; border-radius:8px; }
+        canvas { 
+            border: 4px solid #000;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            touch-action: none;
+        }
+        .instructions {
+            position: absolute;
+            top: 20px;
+            color: white;
+            text-align: center;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body>
-    <py-config>
-        packages = ["pygame-ce"]
-    </py-config>
-    <py-script src="./main2.py"></py-script>
+    <div class="instructions">
+        <div>🕹️ SPACEBAR or TAP to flap</div>
+        <div style="font-size: 14px; margin-top: 10px;">Made with pygbag + pygame-ce</div>
+    </div>
+    <canvas id="canvas" width="400" height="600"></canvas>
+    <script src="https://unpkg.com/pygbag@0.8.4/pygbag.min.js"></script>
+    <script src="./main.js"></script>
 </body>
 </html>
