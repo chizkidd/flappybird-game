@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird</title>
+    <title>Flappybird Game</title>
     <style>
         body {
             margin: 0;
             background: linear-gradient(180deg, #70c5ce 0%, #306998 100%);
             display: flex;
+            flex-direction: column; /* Allow content stacking */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -21,6 +22,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             touch-action: none;
             cursor: pointer;
+            margin-top: 10px; /* Space from controls */
         }
         .instructions {
             position: absolute;
@@ -43,11 +45,42 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             z-index: 10;
         }
+        /* --- NEW: Difficulty Controls Styling --- */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            z-index: 5;
+        }
+        .controls button {
+            padding: 8px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 2px solid #fff;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            border-radius: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .controls button:hover {
+            background: rgba(0,0,0,0.5);
+        }
+        .controls .active {
+            border-color: #ffeb3b; /* Highlight for active mode */
+            background: rgba(255, 235, 59, 0.1);
+        }
+        /* -------------------------------------- */
     </style>
 </head>
 <body>
     <div class="instructions">
-        🕹️ SPACEBAR or TAP to flap
+        🕹️Flappy Bird: SPACEBAR or TAP to flap
+    </div>
+    
+    <div class="controls">
+        <button id="easyBtn" onclick="setDifficulty('easy')">Easy</button>
+        <button id="mediumBtn" onclick="setDifficulty('medium')" class="active">Medium</button>
+        <button id="hardBtn" onclick="setDifficulty('hard')">Hard</button>
     </div>
     <canvas id="gameCanvas" width="400" height="600"></canvas>
     <div id="loading" class="loading" style="display: none;">Loading assets...</div>
@@ -65,14 +98,36 @@
         const JUMP = -10;
         const PIPE_WIDTH = 52;
         const PIPE_GAP = 180;
-        const PIPE_SPEED = 5;
+        
+        // --- Difficulty Settings ---
+        let currentPipeSpeed = 5; 
+        const DIFFICULTY_SPEEDS = {
+            'easy': 3,
+            'medium': 5,
+            'hard': 6
+        };
 
-        // --- Game States ---
-        // Can be 'loading', 'starting', 'playing', 'gameover'
-        let gameState = 'loading'; 
-        // -------------------
+        // UI elements for highlighting the active difficulty
+        const diffButtons = {
+            'easy': document.getElementById('easyBtn'),
+            'medium': document.getElementById('mediumBtn'),
+            'hard': document.getElementById('hardBtn'),
+        };
+        // ---------------------------
 
-        // Load assets (your PNGs)
+        // Game state
+        let gameState = 'loading'; // Can be 'loading', 'starting', 'playing', 'gameover'
+        let birdX = 100;
+        let birdY = HEIGHT / 2;
+        let birdVelocity = 0;
+        let pipes = [];
+        let score = 0;
+        let highScore = 0;
+        let frame = 0;
+        let delayTimer = 3; 
+        let difficulty = 'medium'; 
+
+        // Load assets
         let bgImg = new Image();
         let birdImg = new Image();
         let pipeImg = new Image();
@@ -84,17 +139,15 @@
                 assetsLoaded++;
                 if (assetsLoaded === totalAssets) {
                     loading.style.display = 'none';
-                    // Start the game in 'starting' state
                     gameState = 'starting';
                     startDelay();
                     gameLoop(); 
                 }
             };
-            img.onerror = () => {  // Fallback to colors if asset fails
+            img.onerror = () => {
                 assetsLoaded++;
                 if (assetsLoaded === totalAssets) {
                     loading.style.display = 'none';
-                    // Start the game in 'starting' state
                     gameState = 'starting';
                     startDelay();
                     gameLoop();
@@ -107,19 +160,42 @@
         loadImage('assets/bluebird-midflap.png', birdImg);
         loadImage('assets/pipe-green.png', pipeImg);
 
-        // Game state
-        let birdX = 100;
-        let birdY = HEIGHT / 2;
-        let birdVelocity = 0;
-        let pipes = [];
-        let score = 0;
-        let highScore = 0;
-        let frame = 0;
-        let delayTimer = 3; // Timer for the 3-second delay
+        // --- NEW: Difficulty UI Logic ---
+        function updateDifficultyUI(level) {
+            Object.keys(diffButtons).forEach(key => {
+                diffButtons[key].classList.remove('active');
+            });
+            if (diffButtons[level]) {
+                diffButtons[level].classList.add('active');
+            }
+        }
+        
+        function setDifficulty(level) {
+            if (DIFFICULTY_SPEEDS.hasOwnProperty(level) && gameState !== 'playing') {
+                difficulty = level;
+                // If not playing, reset the game state to apply new speed
+                if (gameState === 'starting' || gameState === 'gameover') {
+                    resetGame();
+                }
+                updateDifficultyUI(level);
+            }
+        }
+        // --------------------------------
+
+        // Reset game state function
+        function resetGame() {
+            pipes = [];
+            birdY = HEIGHT / 2;
+            birdVelocity = 0;
+            score = 0;
+            frame = 0;
+            delayTimer = 3;
+            // Set the pipe speed based on the current difficulty
+            currentPipeSpeed = DIFFICULTY_SPEEDS[difficulty];
+        }
 
         // Start Delay Function
         function startDelay() {
-            // Set up a 1-second interval to decrement the delay timer
             let countdown = setInterval(() => {
                 delayTimer--;
                 if (delayTimer <= 0) {
@@ -132,21 +208,18 @@
         // Input handling (keyboard + touch/mouse)
         function jump() {
             if (gameState === 'starting') {
-                // First jump begins the game
                 gameState = 'playing';
                 birdVelocity = JUMP;
+                // Hide difficulty controls when game starts
+                document.querySelector('.controls').style.display = 'none';
             } else if (gameState === 'playing') {
                 birdVelocity = JUMP;
             } else if (gameState === 'gameover') {
-                // Restart
                 gameState = 'starting';
-                pipes = [];
-                birdY = HEIGHT / 2;
-                birdVelocity = 0;
-                score = 0;
-                frame = 0;
-                delayTimer = 3; // Reset timer for next start
+                resetGame();
                 startDelay();
+                // Show difficulty controls when game restarts
+                document.querySelector('.controls').style.display = 'flex';
             }
         }
 
@@ -175,7 +248,6 @@
 
         // Update game logic
         function update() {
-            // Only update game state if we are playing
             if (gameState !== 'playing') return;
 
             // Bird physics
@@ -189,12 +261,12 @@
             }
 
             // Pipes
-            if (frame % 90 === 0) {  // Spawn every ~1.5s at 60fps
+            if (frame % 90 === 0) {
                 createPipe();
             }
 
             pipes.forEach((pipe, index) => {
-                pipe.x -= PIPE_SPEED;
+                pipe.x -= currentPipeSpeed; // Use currentPipeSpeed
 
                 // Collision detection (Bird is approx 34px wide, 24px high)
                 const birdRight = birdX + 34;
@@ -229,7 +301,7 @@
                 ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
             }
 
-            // Pipes (Always draw pipes that exist)
+            // Pipes 
             pipes.forEach(pipe => {
                 // Top pipe
                 if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
@@ -239,7 +311,6 @@
                     ctx.drawImage(pipeImg, -PIPE_WIDTH / 2, 0, PIPE_WIDTH, pipe.top);
                     ctx.restore();
                 } else {
-                    // Green rect fallback
                     ctx.fillStyle = 'green';
                     ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
                 }
@@ -256,12 +327,10 @@
             // Bird
             ctx.save();
             ctx.translate(birdX + 17, birdY + 12);
-            // Tilt based on velocity, but only if the game is 'playing'
             ctx.rotate(gameState === 'playing' ? -birdVelocity * 0.1 : 0); 
             if (birdImg.complete && birdImg.naturalHeight !== 0) {
                 ctx.drawImage(birdImg, -17, -12);
             } else {
-                // Fallback bird drawing...
                  ctx.fillStyle = 'yellow';
                  ctx.beginPath();
                  ctx.arc(0, 0, 12, 0, Math.PI * 2);
@@ -285,7 +354,7 @@
                     // Countdown display
                     ctx.fillText(`${delayTimer}`, WIDTH / 2, HEIGHT / 2 - 50);
                     ctx.font = '24px Arial';
-                    ctx.fillText('Get Ready!', WIDTH / 2, HEIGHT / 2);
+                    ctx.fillText(`Get Ready! (${difficulty.toUpperCase()})`, WIDTH / 2, HEIGHT / 2);
                 } else {
                     // Score display
                     ctx.fillText(Math.floor(score), WIDTH / 2, 80);
@@ -298,10 +367,14 @@
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 36px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(`Score: ${Math.floor(score)}`, WIDTH / 2, HEIGHT / 2 - 50);
-                ctx.fillText(`High: ${Math.floor(highScore)}`, WIDTH / 2, HEIGHT / 2);
+                ctx.fillText(`Score: ${Math.floor(score)}`, WIDTH / 2, HEIGHT / 2 - 80);
+                ctx.fillText(`High: ${Math.floor(highScore)}`, WIDTH / 2, HEIGHT / 2 - 30);
+                
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText(`Mode: ${difficulty.toUpperCase()}`, WIDTH / 2, HEIGHT / 2 + 20);
+
                 ctx.font = '24px Arial';
-                ctx.fillText('SPACE or TAP to restart', WIDTH / 2, HEIGHT / 2 + 60);
+                ctx.fillText('SPACE or TAP to restart', WIDTH / 2, HEIGHT / 2 + 80);
             }
         }
 
@@ -312,7 +385,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Initial load message
+        // Initial setup
+        resetGame(); // Ensure initial speed is set
         loading.style.display = 'block';
     </script>
 </body>
