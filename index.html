@@ -67,6 +67,11 @@
         const PIPE_GAP = 180;
         const PIPE_SPEED = 5;
 
+        // --- Game States ---
+        // Can be 'loading', 'starting', 'playing', 'gameover'
+        let gameState = 'loading'; 
+        // -------------------
+
         // Load assets (your PNGs)
         let bgImg = new Image();
         let birdImg = new Image();
@@ -79,13 +84,19 @@
                 assetsLoaded++;
                 if (assetsLoaded === totalAssets) {
                     loading.style.display = 'none';
-                    gameLoop();
+                    // Start the game in 'starting' state
+                    gameState = 'starting';
+                    startDelay();
+                    gameLoop(); 
                 }
             };
             img.onerror = () => {  // Fallback to colors if asset fails
                 assetsLoaded++;
                 if (assetsLoaded === totalAssets) {
                     loading.style.display = 'none';
+                    // Start the game in 'starting' state
+                    gameState = 'starting';
+                    startDelay();
                     gameLoop();
                 }
             };
@@ -103,21 +114,39 @@
         let pipes = [];
         let score = 0;
         let highScore = 0;
-        let gameActive = true;
         let frame = 0;
+        let delayTimer = 3; // Timer for the 3-second delay
+
+        // Start Delay Function
+        function startDelay() {
+            // Set up a 1-second interval to decrement the delay timer
+            let countdown = setInterval(() => {
+                delayTimer--;
+                if (delayTimer <= 0) {
+                    clearInterval(countdown);
+                    delayTimer = 0; 
+                }
+            }, 1000);
+        }
 
         // Input handling (keyboard + touch/mouse)
         function jump() {
-            if (gameActive) {
+            if (gameState === 'starting') {
+                // First jump begins the game
+                gameState = 'playing';
                 birdVelocity = JUMP;
-            } else {
+            } else if (gameState === 'playing') {
+                birdVelocity = JUMP;
+            } else if (gameState === 'gameover') {
                 // Restart
-                gameActive = true;
+                gameState = 'starting';
                 pipes = [];
                 birdY = HEIGHT / 2;
                 birdVelocity = 0;
                 score = 0;
                 frame = 0;
+                delayTimer = 3; // Reset timer for next start
+                startDelay();
             }
         }
 
@@ -146,7 +175,8 @@
 
         // Update game logic
         function update() {
-            if (!gameActive) return;
+            // Only update game state if we are playing
+            if (gameState !== 'playing') return;
 
             // Bird physics
             birdVelocity += GRAVITY;
@@ -154,7 +184,7 @@
 
             // Ground/ceiling collision
             if (birdY < 0 || birdY > HEIGHT - 30) {
-                gameActive = false;
+                gameState = 'gameover'; // Change state
                 highScore = Math.max(highScore, score);
             }
 
@@ -166,12 +196,12 @@
             pipes.forEach((pipe, index) => {
                 pipe.x -= PIPE_SPEED;
 
-                // Collision detection
+                // Collision detection (Bird is approx 34px wide, 24px high)
                 const birdRight = birdX + 34;
                 const birdBottom = birdY + 24;
                 if (birdRight > pipe.x && birdX < pipe.x + PIPE_WIDTH &&
                     (birdY < pipe.top || birdBottom > HEIGHT - pipe.bottom)) {
-                    gameActive = false;
+                    gameState = 'gameover'; // Change state
                     highScore = Math.max(highScore, score);
                 }
 
@@ -193,63 +223,74 @@
         // Render
         function draw() {
             // Background
-            ctx.fillStyle = bgImg.src ? 'white' : '#70c5ce';  // Fallback gradient-ish
+            ctx.fillStyle = bgImg.src ? 'white' : '#70c5ce';
             ctx.fillRect(0, 0, WIDTH, HEIGHT);
             if (bgImg.complete && bgImg.naturalHeight !== 0) {
                 ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
             }
 
-            if (gameActive) {
-                // Bird (simple rotation simulation with arc)
-                ctx.save();
-                ctx.translate(birdX + 17, birdY + 12);
-                ctx.rotate(-birdVelocity * 0.1);  // Tilt based on velocity
-                if (birdImg.complete && birdImg.naturalHeight !== 0) {
-                    ctx.drawImage(birdImg, -17, -12);
+            // Pipes (Always draw pipes that exist)
+            pipes.forEach(pipe => {
+                // Top pipe
+                if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
+                    ctx.save();
+                    ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.top);
+                    ctx.scale(1, -1);
+                    ctx.drawImage(pipeImg, -PIPE_WIDTH / 2, 0, PIPE_WIDTH, pipe.top);
+                    ctx.restore();
                 } else {
-                    // Yellow circle fallback
-                    ctx.fillStyle = 'yellow';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = 'black';
-                    ctx.beginPath();
-                    ctx.arc(-4, -4, 2, 0, Math.PI * 2);
-                    ctx.arc(4, -4, 2, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Green rect fallback
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
                 }
-                ctx.restore();
 
-                // Pipes
-                pipes.forEach(pipe => {
-                    // Top pipe
-                    if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
-                        ctx.save();
-                        ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.top);
-                        ctx.scale(1, -1);
-                        ctx.drawImage(pipeImg, -PIPE_WIDTH / 2, 0, PIPE_WIDTH, pipe.top);
-                        ctx.restore();
-                    } else {
-                        // Green rect fallback
-                        ctx.fillStyle = 'green';
-                        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
-                    }
+                // Bottom pipe
+                if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
+                    ctx.drawImage(pipeImg, pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
+                } else {
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
+                }
+            });
 
-                    // Bottom pipe
-                    if (pipeImg.complete && pipeImg.naturalHeight !== 0) {
-                        ctx.drawImage(pipeImg, pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
-                    } else {
-                        ctx.fillStyle = 'green';
-                        ctx.fillRect(pipe.x, HEIGHT - pipe.bottom, PIPE_WIDTH, pipe.bottom);
-                    }
-                });
-
-                // Score
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 48px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(Math.floor(score), WIDTH / 2, 80);
+            // Bird
+            ctx.save();
+            ctx.translate(birdX + 17, birdY + 12);
+            // Tilt based on velocity, but only if the game is 'playing'
+            ctx.rotate(gameState === 'playing' ? -birdVelocity * 0.1 : 0); 
+            if (birdImg.complete && birdImg.naturalHeight !== 0) {
+                ctx.drawImage(birdImg, -17, -12);
             } else {
+                // Fallback bird drawing...
+                 ctx.fillStyle = 'yellow';
+                 ctx.beginPath();
+                 ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                 ctx.fill();
+                 ctx.fillStyle = 'black';
+                 ctx.beginPath();
+                 ctx.arc(-4, -4, 2, 0, Math.PI * 2);
+                 ctx.arc(4, -4, 2, 0, Math.PI * 2);
+                 ctx.fill();
+            }
+            ctx.restore();
+
+            // Score/State Messages
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            
+            if (gameState === 'starting' || gameState === 'playing') {
+                // Display countdown or score
+                if (delayTimer > 0) {
+                    // Countdown display
+                    ctx.fillText(`${delayTimer}`, WIDTH / 2, HEIGHT / 2 - 50);
+                    ctx.font = '24px Arial';
+                    ctx.fillText('Get Ready!', WIDTH / 2, HEIGHT / 2);
+                } else {
+                    // Score display
+                    ctx.fillText(Math.floor(score), WIDTH / 2, 80);
+                }
+            } else if (gameState === 'gameover') {
                 // Game over screen
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
